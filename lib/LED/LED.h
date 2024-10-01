@@ -9,14 +9,19 @@ enum class LEDColor {
   WHITE,
 };
 
-static const uint8_t RED_PIN = 0;
-static const uint8_t GREEN_PIN = 0;
-static const uint8_t BLUE_PIN = 0;
+static const uint8_t RED_PIN = D9;
+static const uint8_t GREEN_PIN = D6;
+static const uint8_t BLUE_PIN = D5;
+
+void initLED();
+void onLED(const LEDColor col);
+void offLED();
 
 void initLED(){
   pinMode(RED_PIN, INPUT);
   pinMode(GREEN_PIN, OUTPUT);
   pinMode(BLUE_PIN, OUTPUT);
+  offLED();
 }
 
 void onLED(const LEDColor col){

@@ -4,37 +4,30 @@
 #include "Notify.h"
 #include "LED.h"
 
-// ======================= 自分で設定する項目 =======================
-const char* ssid = "ssid";  // WiFiのSSID
-const char* password = "password";  // WiFiのパスワード
-const char* token = "hogehoge_token";  // Line Notifyのトークン
-const bool ifNotifyEveryDay = true;  // 毎日通知するかどうか
-const int8_t timeToNotify = 8;  // 通知する時間 (単位: 時)
-const time_t timeToUpdateClock = 1 * 60 * 60;  // 内部時計を更新する周期 (単位: 秒)
-// ================================================================
-
-const uint8_t leftSensor = 34;
-const uint8_t rightSensor = 35;
+const uint8_t leftSensor = A1;
+const uint8_t rightSensor = A0;
 
 uint16_t thresholdLeft, thresholdRight; // 開いたことの閾値
 
 void updateClock() {
   configTzTime("JST-9", "ntp.nict.jp", "time.google.com", "ntp.jst.mfeed.ad.jp");
   while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) {
-    Serial.print(".");
+    Serial.print(",");
     delay(1000); // １秒毎にリトライ
   }
 }
 
 void setup() {
   Serial.begin(115200);
-  pinMode(leftSensor, ANALOG);
-  pinMode(rightSensor, ANALOG);
   initLED();
 
   // WiFi接続
-  onLED(LEDColor::BLUE);
+  // onLED(LEDColor::BLUE);
   wifiConnect();  // WiFi接続
+  while (1){
+    Serial.println("WiFi connected");
+    delay(1000);
+  }
   updateClock();  // 時刻を更新
 
   // 閾値の設定

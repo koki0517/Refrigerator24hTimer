@@ -1,14 +1,11 @@
 #pragma once
 
 #include <WiFi.h>
-#include <WiFiMulti.h>
-#include <ssl_client.h>
-#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
+#include "settings.h"
+
 void wifiConnect() {
-  WiFi.disconnect();
-  WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);  // WiFi接続
   while (WiFi.status() != WL_CONNECTED) {  // WiFi 接続待ち
     delay(100);
