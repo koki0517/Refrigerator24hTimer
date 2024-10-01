@@ -1,18 +1,101 @@
 #include <Arduino.h>
+#include <esp_sntp.h>
 
-// put function declarations here:
-int myFunction(int, int);
+#include "Notify.h"
+#include "LED.h"
+
+// ======================= 自分で設定する項目 =======================
+const char* ssid = "ssid";  // WiFiのSSID
+const char* password = "password";  // WiFiのパスワード
+const char* token = "hogehoge_token";  // Line Notifyのトークン
+const bool ifNotifyEveryDay = true;  // 毎日通知するかどうか
+const int8_t timeToNotify = 8;  // 通知する時間 (単位: 時)
+const time_t timeToUpdateClock = 1 * 60 * 60;  // 内部時計を更新する周期 (単位: 秒)
+// ================================================================
+
+const uint8_t leftSensor = 34;
+const uint8_t rightSensor = 35;
+
+uint16_t thresholdLeft, thresholdRight; // 開いたことの閾値
+
+void updateClock() {
+  configTzTime("JST-9", "ntp.nict.jp", "time.google.com", "ntp.jst.mfeed.ad.jp");
+  while (sntp_get_sync_status() == SNTP_SYNC_STATUS_RESET) {
+    Serial.print(".");
+    delay(1000); // １秒毎にリトライ
+  }
+}
 
 void setup() {
-  // put your setup code here, to run once:
-  int result = myFunction(2, 3);
+  Serial.begin(115200);
+  pinMode(leftSensor, ANALOG);
+  pinMode(rightSensor, ANALOG);
+  initLED();
+
+  // WiFi接続
+  onLED(LEDColor::BLUE);
+  wifiConnect();  // WiFi接続
+  updateClock();  // 時刻を更新
+
+  // 閾値の設定
+  onLED(LEDColor::YELLOW);
+  unsigned long start = millis();
+  uint16_t leftMax = 0, rightMax = 0, leftMin = 10000, rightMin = 10000;
+  while (millis() - start < 10000) {
+    leftMax = max(leftMax, analogRead(leftSensor));
+    rightMax = max(rightMax, analogRead(rightSensor));
+    leftMin = min(leftMin, analogRead(leftSensor));
+    rightMin = min(rightMin, analogRead(rightSensor));
+    delay(10);
+  }
+  thresholdLeft = (leftMax + leftMin) / 2;
+  thresholdRight = (rightMax + rightMin) / 2;
+  onLED(LEDColor::GREEN);
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-}
+  long lastOpenedTime = time(nullptr);
+  time_t t;
+  struct tm *tm;
+  send("電源に接続されました");
 
-// put function definitions here:
-int myFunction(int x, int y) {
-  return x + y;
+  while (1) {
+    // 時刻を取得
+    t = time(nullptr);
+    tm = localtime(&t);
+    // センサを読む
+    if (analogRead(leftSensor) > thresholdLeft || analogRead(rightSensor) > thresholdRight){
+      // 開いたとき最後に開いた時間を更新
+      updateClock();
+      lastOpenedTime = time(nullptr);
+      onLED(LEDColor::WHITE);
+      delay(1000);
+      onLED(LEDColor::GREEN);
+      delay(1000);
+      continue;
+    }
+
+    // 24時間経過していたら通知
+    if (ifNotifyEveryDay && time(nullptr) - lastOpenedTime > 24 * 60 * 60) {
+      send("24時間以上開いていません");
+      onLED(LEDColor::RED);
+      while (1);
+    }
+
+    // 定期的に時刻を更新
+    if (time(nullptr) - lastOpenedTime > timeToUpdateClock) {
+      updateClock();
+      continue;
+    }
+
+    // 1日に1回通知 (オプション)
+    if (ifNotifyEveryDay) {
+      // 通知する時間(timeToNotify)になったら通知
+      if (tm->tm_hour == timeToNotify) {
+        send("[定期通知] 最後に開いたのは"+String(ctime(&lastOpenedTime)));
+      }
+    }
+
+    delay(1000);
+  }
 }
