@@ -57,6 +57,7 @@ void loop() {
   long lastOpenedTime = time(nullptr);
   time_t t;
   struct tm *tm;
+  bool hasNotified = false;
   send("電源に接続されました");
 
   while (1) {
@@ -91,8 +92,12 @@ void loop() {
     // 1日に1回通知 (オプション)
     if (ifNotifyEveryDay) {
       // 通知する時間(timeToNotify)になったら通知
-      if (tm->tm_hour == timeToNotify) {
+      if (tm->tm_hour == timeToNotify && !hasNotified) {
         send("[定期通知] 最後に開いたのは"+String(ctime(&lastOpenedTime)));
+        hasNotified = true;
+      }
+      else {
+        hasNotified = false;
       }
     }
 
