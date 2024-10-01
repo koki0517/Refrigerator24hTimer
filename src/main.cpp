@@ -22,13 +22,13 @@ void setup() {
   initLED();
 
   // WiFi接続
-  // onLED(LEDColor::BLUE);
+  onLED(LEDColor::BLUE);
   wifiConnect();  // WiFi接続
+  updateClock();  // 時刻を更新
   while (1){
     Serial.println("WiFi connected");
     delay(1000);
   }
-  updateClock();  // 時刻を更新
 
   // 閾値の設定
   onLED(LEDColor::YELLOW);
